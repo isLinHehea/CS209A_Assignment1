@@ -3,6 +3,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OnlineCoursesAnalyzer {
 
@@ -45,12 +46,24 @@ public class OnlineCoursesAnalyzer {
 
     //1
     public Map<String, Integer> getPtcpCountByInst() {
-        return null;
+        return courses.stream()
+            .collect(Collectors.groupingBy(Course::getInstitution,
+                Collectors.summingInt(Course::getParticipants))).entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                (oldValue, newValue) -> oldValue, LinkedHashMap::new));
     }
 
     //2
     public Map<String, Integer> getPtcpCountByInstAndSubject() {
-        return null;
+        return courses.stream().collect(
+                Collectors.groupingBy(course -> course.getInstitution() + "-" + course.getSubject(),
+                    Collectors.summingInt(Course::getParticipants)))
+            .entrySet().stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                .thenComparing(Map.Entry.comparingByKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                (oldValue, newValue) -> oldValue, LinkedHashMap::new));
     }
 
     //3
@@ -101,6 +114,18 @@ class Course {
     double percentMale;
     double percentFemale;
     double percentDegree;
+
+    public String getInstitution() {
+        return institution;
+    }
+
+    public int getParticipants() {
+        return participants;
+    }
+
+    public String getSubject() {
+        return subject;
+    }
 
     public Course(String institution, String number, Date launchDate,
         String title, String instructors, String subject,
