@@ -73,13 +73,36 @@ public class OnlineCoursesAnalyzer {
 
     //4
     public List<String> getCourses(int topK, String by) {
-        return null;
+        if (by.equals("hours")) {
+            courses = courses.stream()
+                .sorted(Comparator.comparing(Course::getTotalHours)
+                    .reversed().thenComparing(Course::getTitle))
+                .collect(Collectors.toList());
+        } else if (by.equals("participants")) {
+            courses = courses.stream()
+                .sorted(Comparator.comparing(Course::getParticipants)
+                    .reversed().thenComparing(Course::getTitle))
+                .collect(Collectors.toList());
+        }
+        return courses.stream()
+            .map(Course::getTitle)
+            .distinct()
+            .limit(topK)
+            .collect(Collectors.toList());
     }
 
     //5
     public List<String> searchCourses(String courseSubject, double percentAudited,
         double totalCourseHours) {
-        return null;
+        String subject = courseSubject.toLowerCase();
+        return courses.stream()
+            .filter(course -> course.getSubject().toLowerCase().contains(subject))
+            .filter(course -> course.getPercentAudited() >= percentAudited)
+            .filter(course -> course.getTotalHours() <= totalCourseHours)
+            .map(Course::getTitle)
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
     }
 
     //6
@@ -125,6 +148,22 @@ class Course {
 
     public String getSubject() {
         return subject;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getInstructors() {
+        return instructors;
+    }
+
+    public double getTotalHours() {
+        return totalHours;
+    }
+
+    public double getPercentAudited() {
+        return percentAudited;
     }
 
     public Course(String institution, String number, Date launchDate,
