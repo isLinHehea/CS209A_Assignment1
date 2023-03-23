@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class OnlineCoursesAnalyzer {
 
@@ -68,7 +69,59 @@ public class OnlineCoursesAnalyzer {
 
     //3
     public Map<String, List<List<String>>> getCourseListOfInstructor() {
-        return null;
+        Map<String, List<List<String>>> result = new HashMap<>();
+        Map<String, List<Course>> independentCoursesByInstructor = courses.stream()
+            .filter(Course::isIndependentlyResponsible)
+            .collect(Collectors.groupingBy(Course::getInstructors));
+
+        independentCoursesByInstructor.forEach((instructorName, instructorCourses) -> {
+            List<List<String>> instructorCourseLists = new ArrayList<>();
+            List<String> independentCourseTitles = instructorCourses.stream()
+                .map(Course::getTitle)
+                .sorted()
+                .collect(Collectors.toList());
+            instructorCourseLists.add(independentCourseTitles);
+            List<String> coDevelopedCourseTitles = new ArrayList<>();
+            instructorCourseLists.add(coDevelopedCourseTitles);
+            result.put(instructorName, instructorCourseLists);
+        });
+
+        Map<String, List<Course>> coDevelopedCoursesByInstructor = courses.stream()
+            .filter(course -> !course.isIndependentlyResponsible())
+            .collect(Collectors.groupingBy(Course::getInstructors));
+
+        coDevelopedCoursesByInstructor.forEach((instructorName, instructorCourses) -> {
+            String[] instructors = instructorName.split(", ");
+            for (int i = 0; i < instructors.length; i++) {
+                String instructor = instructors[i];
+                List<String> coDevelopedCourseTitles = instructorCourses.stream()
+                    .map(Course::getTitle)
+                    .sorted()
+                    .toList();
+                if (result.containsKey(instructor)) {
+                    result.get(instructor)
+                        .set(1, Stream.concat(result.get(instructor).get(1).stream(),
+                                coDevelopedCourseTitles.stream())
+                            .collect(Collectors.toList()));
+                } else {
+                    List<List<String>> instructorCourseLists = new ArrayList<>();
+                    List<String> independentCourseTitles = new ArrayList<>();
+                    instructorCourseLists.add(independentCourseTitles);
+                    instructorCourseLists.add(coDevelopedCourseTitles);
+                    result.put(instructor, instructorCourseLists);
+                }
+            }
+        });
+        result.entrySet().forEach(entry -> {
+            entry.setValue(entry.getValue().stream()
+                .map(innerList -> {
+                    List<String> copy = new ArrayList<>(innerList);
+                    Collections.sort(copy);
+                    return copy.stream().distinct().collect(Collectors.toList());
+                })
+                .collect(Collectors.toList()));
+        });
+        return result;
     }
 
     //4
@@ -107,6 +160,7 @@ public class OnlineCoursesAnalyzer {
 
     //6
     public List<String> recommendCourses(int age, int gender, int isBachelorOrHigher) {
+
         return null;
     }
 
@@ -137,6 +191,7 @@ class Course {
     double percentMale;
     double percentFemale;
     double percentDegree;
+    boolean ifIsIndependent;
 
     public String getInstitution() {
         return institution;
@@ -216,5 +271,9 @@ class Course {
         this.percentMale = percentMale;
         this.percentFemale = percentFemale;
         this.percentDegree = percentDegree;
+    }
+
+    public boolean isIndependentlyResponsible() {
+        return !instructors.contains(",");
     }
 }
