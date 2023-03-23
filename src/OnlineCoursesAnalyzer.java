@@ -160,8 +160,47 @@ public class OnlineCoursesAnalyzer {
 
     //6
     public List<String> recommendCourses(int age, int gender, int isBachelorOrHigher) {
+        courses = courses.stream().sorted(Comparator.comparing(Course::getLaunchDate).reversed())
+            .toList();
+        Map<String, Course> coursesMap = courses.stream()
+            .collect(Collectors.groupingBy(Course::getNumber,
+                Collectors.collectingAndThen(Collectors.toList(), courseList -> {
+                    double averageMedianAge = courseList.stream()
+                        .mapToDouble(Course::getMedianAge)
+                        .average()
+                        .orElse(0.0);
+                    double averagePercentMale = courseList.stream()
+                        .mapToDouble(Course::getPercentMale)
+                        .average()
+                        .orElse(0.0);
+                    double averagePercentBachelorOrHigher = courseList.stream()
+                        .mapToDouble(Course::getPercentDegree)
+                        .average()
+                        .orElse(0.0);
+                    return new Course(courseList.get(0), averageMedianAge, averagePercentMale,
+                        averagePercentBachelorOrHigher);
+                })));
 
-        return null;
+        Map<String, Double> similarityValues = coursesMap.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+                Course course = entry.getValue();
+                double ageDifference = age - course.getAverageMedianAge();
+                double genderDifference = gender * 100 - course.getAveragePercentMale();
+                double degreeDifference =
+                    isBachelorOrHigher * 100 - course.getAveragePercentBachelorOrHigher();
+                return ageDifference * ageDifference + genderDifference * genderDifference +
+                    degreeDifference * degreeDifference;
+            }));
+
+        List<String> recommendedCourses = similarityValues.entrySet().stream()
+            .sorted(Comparator.comparing(entry -> coursesMap.get(entry.getKey()).getTitle()))
+            .sorted(Map.Entry.comparingByValue())
+            .distinct()
+            .limit(10)
+            .map(entry -> coursesMap.get(entry.getKey()).getTitle())
+            .collect(Collectors.toList());
+
+        return recommendedCourses;
     }
 
 }
@@ -191,7 +230,45 @@ class Course {
     double percentMale;
     double percentFemale;
     double percentDegree;
-    boolean ifIsIndependent;
+    double averageMedianAge;
+    double averagePercentMale;
+    double averagePercentBachelorOrHigher;
+
+    public String getNumber() {
+        return number;
+    }
+
+    public Date getLaunchDate() {
+        return launchDate;
+    }
+
+    public double getMedianAge() {
+        return medianAge;
+    }
+
+    public double getPercentMale() {
+        return percentMale;
+    }
+
+    public double getPercentFemale() {
+        return percentFemale;
+    }
+
+    public double getPercentDegree() {
+        return percentDegree;
+    }
+
+    public double getAverageMedianAge() {
+        return averageMedianAge;
+    }
+
+    public double getAveragePercentMale() {
+        return averagePercentMale;
+    }
+
+    public double getAveragePercentBachelorOrHigher() {
+        return averagePercentBachelorOrHigher;
+    }
 
     public String getInstitution() {
         return institution;
@@ -271,6 +348,36 @@ class Course {
         this.percentMale = percentMale;
         this.percentFemale = percentFemale;
         this.percentDegree = percentDegree;
+    }
+
+    public Course(Course course, double averageMedianAge, double averagePercentMale,
+        double averagePercentBachelorOrHigher) {
+        this.institution = course.institution;
+        this.number = course.number;
+        this.launchDate = course.launchDate;
+        this.title = course.title;
+        this.instructors = course.instructors;
+        this.subject = course.subject;
+        this.year = course.year;
+        this.honorCode = course.honorCode;
+        this.participants = course.participants;
+        this.audited = course.audited;
+        this.certified = course.certified;
+        this.percentAudited = course.percentAudited;
+        this.percentCertified = course.percentCertified;
+        this.percentCertified50 = course.percentCertified50;
+        this.percentVideo = course.percentVideo;
+        this.percentForum = course.percentForum;
+        this.gradeHigherZero = course.gradeHigherZero;
+        this.totalHours = course.totalHours;
+        this.medianHoursCertification = course.medianHoursCertification;
+        this.medianAge = course.medianAge;
+        this.percentMale = course.percentMale;
+        this.percentFemale = course.percentFemale;
+        this.percentDegree = course.percentDegree;
+        this.averageMedianAge = averageMedianAge;
+        this.averagePercentMale = averagePercentMale;
+        this.averagePercentBachelorOrHigher = averagePercentBachelorOrHigher;
     }
 
     public boolean isIndependentlyResponsible() {
